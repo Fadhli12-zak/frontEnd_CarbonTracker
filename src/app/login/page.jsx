@@ -1,15 +1,66 @@
 "use client";
+
 import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { FaEye, FaEyeSlash } from "react-icons/fa";
 
 export default function LoginPage() {
+  const [form, setForm] = useState({
+    username: "",
+    password: "",
+  });
+  const [error, setError] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const router = useRouter();
+
+  const handleChange = (e) => {
+    setForm({ ...form, [e.target.name]: e.target.value });
+  };
+  const validatePassword = (password) => {
+    const passwordRegex =
+      /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+    return passwordRegex.test(password);
+  };
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError("");
+
+    if (!form.username || !form.password) {
+      setError("Username dan password wajib diisi");
+      return;
+    }
+    if (!validatePassword(form.password)) {
+      setError(
+        "Password harus minimal 8 karakter, mengandung huruf besar, kecil, angka dan simbol."
+      );
+      return;
+    }
+    try {
+      const res = await fetch("url", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(form),
+      });
+
+      if (!res.ok) {
+        const data = await res.json();
+        setError(data.message || "Username atau kata sandi salah.");
+        return;
+      }
+
+      alert("Login Berhasil!");
+      router.push("/");
+    } catch (err) {
+      setError("Tidak dapat terhubung ke server. Periksa koneksi Anda.");
+    }
+  };
+
   return (
     <div className="flex min-h-screen">
       <div
-        className="relative flex w-1/2 flex-col items-center justify-center bg-cover bg-center p-10  text-white"
+        className="relative flex w-1/2 flex-col items-center justify-center bg-cover bg-center p-10 text-white"
         style={{ backgroundImage: "url('/Bgentrance.jpg')" }}
       >
         <div className="absolute inset-0 bg-gradient-to-t from-primary-green to-transparent"></div>
@@ -17,12 +68,12 @@ export default function LoginPage() {
           <h2 className="mb-4 max-w-full text-5xl font-bold">
             Belum memiliki akun?
           </h2>
-          <p className="mb-8 text-2xl ">Daftar dan Ketahui Dampak Emisimu!</p>
+          <p className="mb-8 text-2xl">Daftar dan Ketahui Dampak Emisimu!</p>
           <Link
             href="/register"
             className="rounded-full bg-white px-8 py-3 font-bold text-primary-green transition hover:bg-gray-200"
           >
-            Masuk
+            Daftar
           </Link>
         </div>
       </div>
@@ -36,31 +87,37 @@ export default function LoginPage() {
                 alt="Logo"
                 width={80}
                 height={80}
-                className="mx-auto "
+                className="mx-auto"
               />
             </div>
             <h1 className="mb-2 mt-24 text-5xl font-bold text-black">Masuk</h1>
             <p className="text-gray-500 text-lg">Masukkan Data diri Anda</p>
           </div>
           <div className="mb-72">
-            <form>
+            <form onSubmit={handleSubmit}>
               <div className="mb-5">
                 <input
                   type="text"
+                  name="username"
+                  value={form.username}
+                  onChange={handleChange}
                   placeholder="Username"
-                  className="h-16 w-full rounded-full border-none bg-gray-100  p-4 pr-12 pl-6 text-gray-700 focus:outline-none focus:ring-2 focus:ring-green-500"
+                  className="h-16 w-full rounded-full border-none bg-gray-100 p-4 pr-12 pl-6 text-gray-700 focus:outline-none focus:ring-2 focus:ring-green-500"
                 />
               </div>
-              <div className=" relative mb-5">
+              <div className="relative mb-5">
                 <input
                   type={showPassword ? "text" : "password"}
+                  name="password"
+                  value={form.password}
+                  onChange={handleChange}
                   placeholder="Password"
                   className="h-16 w-full rounded-full border-none bg-gray-100 py-4 pr-12 pl-6 text-gray-700 focus:outline-none focus:ring-2 focus:ring-green-500"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute inset-y-0 right-4 flex items-center  pr-3 text-gray-600"
+                  className="absolute inset-y-0 right-4 flex items-center pr-3 text-gray-600"
                 >
                   {showPassword ? <FaEyeSlash /> : <FaEye />}
                 </button>
@@ -68,10 +125,13 @@ export default function LoginPage() {
 
               <button
                 type="submit"
-                className="h-12 w-full rounded-full bg-green-900 p-1 font-bold text-white transition hover:bg-green-700"
+                className="h-12 w-full rounded-full bg-primary-green p-1 font-bold text-white transition hover:bg-green-700"
               >
                 Masuk
               </button>
+              {error && (
+                <p className="mt-4 text-center text-sm text-red-600">{error}</p>
+              )}
             </form>
           </div>
         </div>
