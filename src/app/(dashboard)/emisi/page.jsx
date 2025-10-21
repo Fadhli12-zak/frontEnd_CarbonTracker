@@ -19,11 +19,11 @@ async function getEmissionData() {
     // --- Data MOCK (Pengganti API) ---
     const mockData = {
       totalEmissions: [
-        { name: "Energi", percentage: 40, color: "#00FFB9" }, // Hijau
-        { name: "Limbah", percentage: 5, color: "#A1FF00" }, // Ungu
-        { name: "Produksi & Material", percentage: 10, color: "#FFAE00" }, // Oranye
-        { name: "Transportasi & Logistik", percentage: 30, color: "#FF0088" }, // Pink
-        { name: "Tidak ada Emisi", percentage: 15, color: "#BDC3C7" }, // Abu-abu
+        { name: "Energi", percentage: 40, color: "#00FFB9" }, // ijau
+        { name: "Limbah", percentage: 5, color: "#A1FF00" }, // ungu
+        { name: "Produksi & Material", percentage: 10, color: "#FFAE00" }, // iren
+        { name: "Transportasi & Logistik", percentage: 30, color: "#FF0088" }, // pink
+        { name: "Tidak ada Emisi", percentage: 15, color: "#BDC3C7" }, // abu-abu
       ],
       categoricalEmissions: [
         {
@@ -96,8 +96,7 @@ export default async function EmissionPage() {
           ))}
         </div>
       </section>
-
-      <section className="ml-16 mr-16">
+      <section className="mx-6 lg:mx-16">
         <h2 className="text-2xl font-bold mb-4 text-primary-green">Analisis</h2>
         <p className="text-gray-700 leading-relaxed">
           Berdasarkan Data Input, bulan ini emisi terbesar berasal dari kategori
@@ -113,20 +112,23 @@ export default async function EmissionPage() {
         </p>
       </section>
 
-      <section className="ml-16 mt-8 mr-16 pb-20">
+      <section className="ml-16 mt-8 mr-16 pb-20 ">
         <h2 className="text-2xl font-bold mb-6 text-primary-green">
           Sumber Emisi Per Kategori
         </h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-10 ">
           {data.categoricalEmissions.map((item) => (
-            <div key={item.id} className="flex items-center gap-6">
+            <div
+              key={item.id}
+              className="flex flex-col items-center gap-4 md:flex-row md:items-center md:gap-6"
+            >
               <div className="flex-shrink-0">
                 <DonutEmissionChart
                   percentage={item.percentage}
                   color={item.color}
                 />
               </div>
-              <div className="flex-grow ">
+              <div className="w-full md:w-auto md:flex-grow">
                 <h4 className="font-bold mb-1 text-gray-500">Sumber emisi:</h4>
                 <p className="text-sm text-gray-400 mb-3">{item.source}</p>
                 <h4 className="font-bold mb-1 text-gray-500">Alasan:</h4>

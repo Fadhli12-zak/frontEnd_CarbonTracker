@@ -1,5 +1,6 @@
 "use client";
 
+import error from "next/error";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 
@@ -105,10 +106,8 @@ export default function InputEmisiPage() {
 
     try {
       console.log("Data siap dikirim:", formData);
-      // Simulasi pengiriman API
       await new Promise((resolve) => setTimeout(resolve, 1500));
 
-      // Ganti dengan fetch API Anda nanti
       // const res = await fetch('URL_API_EMISI', { /* ... */ });
       // if (!res.ok) throw new Error('Gagal menyimpan data emisi.');
 

@@ -35,36 +35,42 @@ export default function RekomendasiAksiPage() {
   return (
     <div className="w-full bg-white text-gray-900">
       <div className="h-24 w-full bg-tertiary-green -mb-10 " />
-      <div className="p-20 ">
-        <h1 className="text-3xl font-bold mb-8 text-primary-green">
-          Rekomendasi Aksi
-        </h1>
 
+      <div className="p-6 pt-20 md:p-12 lg:p-20  ">
+        <h1 className="text-3xl font-bold mb-1 text-primary-green ">
+            Rekomendasi Aksi  
+        </h1>
         <div className="space-y-6">
+           
           {recommendationsData.map((item) => (
             <article
               key={item.id}
               className="
               flex flex-col md:flex-row bg-light-green
-              rounded-lg shadow-sm overflow-hidden p-6 
+              rounded-lg shadow-sm overflow-hidden 
               items-center transition-shadow hover:shadow-md
-            "
+              p-4 md:p-6"
             >
-              <div className="w-full h-56 md:w-1/3 flex-shrink-0">
+              <div className="w-full h-40 md:h-56 md:w-1/3 flex-shrink-0">
                 <Image
                   src={item.imageUrl}
                   alt={item.title}
                   width={400}
                   height={300}
-                  className="rounded-lg object-cover h-56 min-w-72 "
+                  className="
+                    rounded-lg object-cover 
+                    {/* PERUBAHAN 4: Ubah className agar gambar mengisi
+                      container-nya ('w-full' dan 'h-full').
+                    */}
+                    w-full h-full
+                  "
                 />
               </div>
-
-              {/* Kolom Teks */}
               <div className="w-full md:w-2/3 mt-4 md:mt-0 md:pl-6 ">
-                <h2 className="text-2xl font-bold mb-2 text-gray-800">
-                  {item.title}
+                <h2 className="text-xl md:text-2xl font-bold mb-2 text-gray-800">
+                    {item.title}
                 </h2>
+
                 <p className="text-gray-700 leading-relaxed">
                   {item.description}
                 </p>

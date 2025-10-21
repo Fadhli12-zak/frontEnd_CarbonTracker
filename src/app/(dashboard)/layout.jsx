@@ -7,7 +7,6 @@ async function checkAuth() {
   const token = cookies().get("session_token")?.value;
 
   // if (!token) {
-  //   // Jika TIDAK ADA token, lempar ke halaman login
   //   redirect("/login");
   // }
 
@@ -19,7 +18,7 @@ async function checkAuth() {
     // const user = await res.json();
     // return user;
 
-    // Data Mock untuk sementara
+    // sementara
     return { name: "User X", imageUrl: "/placeholder-avatar.png" };
   } catch (error) {
     console.error(error);
@@ -36,7 +35,7 @@ export default async function DashboardLayout({ children }) {
       <main className="ml-20 w-full relative">
         <header
           className="absolute z-30 flex items-center gap-4 
-            top-6 right-6 "
+            top-6 right-6 sm:mb-20 lg:gap-6"
         >
           <div className="text-right">
             <p className="text-sm text-gray-300">Selamat Datang!</p>
