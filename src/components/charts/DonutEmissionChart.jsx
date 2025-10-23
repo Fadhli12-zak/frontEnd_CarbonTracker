@@ -10,7 +10,7 @@ export default function DonutEmissionChart({ percentage, color }) {
     datasets: [
       {
         data: [percentage, 100 - percentage],
-        backgroundColor: [color, "#E5E7EB"], 
+        backgroundColor: [color, "#E5E7EB"],
         borderColor: ["transparent", "transparent"],
         hoverBorderColor: ["transparent", "transparent"],
         cutout: "60%",
@@ -21,7 +21,7 @@ export default function DonutEmissionChart({ percentage, color }) {
   const options = {
     plugins: {
       tooltip: {
-        enabled: false, 
+        enabled: false,
       },
     },
     maintainAspectRatio: true,

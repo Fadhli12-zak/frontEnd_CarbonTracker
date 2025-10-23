@@ -1,8 +1,9 @@
 "use client";
 
-import error from "next/error";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import ErrorModal from "@/components/popup/ErrorModal";
+import Image from "next/image";
 
 const InputField = ({
   category,
@@ -40,27 +41,6 @@ const InputField = ({
   </div>
 );
 
-function ErrorModal({ isOpen, message, onClose }) {
-  if (!isOpen) return null;
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-      <div className="bg-white p-8 rounded-lg shadow-xl max-w-sm w-full mx-4">
-        <h3 className="text-xl font-bold text-red-600 mb-4">Peringatan!</h3>
-        <p className="text-gray-700 mb-6">{message}</p>
-        <div className="flex justify-end">
-          <button
-            onClick={onClose}
-            className="rounded-md bg-primary-green px-4 py-2 text-white font-medium hover:opacity-90"
-          >
-            Tutup
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 export default function InputEmisiPage() {
   const [formData, setFormData] = useState({
     listrik: "",
@@ -68,15 +48,17 @@ export default function InputEmisiPage() {
     gasLpg: "",
     bbmSolar: "",
     bbmBensin: "",
-    bbmOperasional: "",
-    perjalananDinas: "",
-    transportasiBarang: "",
-    konsumsiKertas: "",
-    airBersih: "",
     limbahPadat: "",
     limbahCair: "",
+    transport2: "",
+    transport1: "",
+    perjalananDinas: "",
+    ac1: "",
+    ac2: "",
+    konsumsiKertas: "",
+    transportB: "",
+    airBersih: "",
   });
-  // const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const [modalMessage, setModalMessage] = useState("");
@@ -92,28 +74,144 @@ export default function InputEmisiPage() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    // Reset modal
     setModalMessage("");
     setShowModal(false);
     setIsLoading(true);
 
-    if (Object.values(formData).some((value) => value === "")) {
-      setModalMessage("Semua kolom input wajib diisi!");
+    const filledData = Object.entries(formData)
+      .filter(([key, value]) => value !== "" && value !== null)
+      .reduce((obj, [key, value]) => {
+        obj[key] = value;
+        return obj;
+      }, {});
+
+    if (Object.keys(filledData).length === 0) {
+      setModalMessage("Harap isi setidaknya satu kolom input.");
       setShowModal(true);
       setIsLoading(false);
       return;
     }
 
     try {
-      console.log("Data siap dikirim:", formData);
-      await new Promise((resolve) => setTimeout(resolve, 1500));
+      const token = localStorage.getItem("authToken");
+      if (!token) {
+        throw new Error(
+          "Token autentikasi tidak ditemukan. Silakan login kembali."
+        );
+      }
 
-      // const res = await fetch('URL_API_EMISI', { /* ... */ });
-      // if (!res.ok) throw new Error('Gagal menyimpan data emisi.');
+      const sourceNameMapping = {
+        listrik: "Listrik PLN",
+        genset: "Genset",
+        gasLpg: "LPG",
+        bbmSolar: "BBM Solar / Diesel",
+        bbmBensin: "BBM Bensin / Gasolin",
+        limbahPadat: "Limbah Padat",
+        limbahCair: "Limbah Cair",
+        transport2: "Transportasi Operasional(Mobil Bensin)",
+        transport1: "Transportasi Operasional(Mobil Diesel)",
+        perjalananDinas: "Perjalanan Dinas(Pesawat Domestik)",
+        ac1: "Air Conditioning(R-134a)",
+        ac2: "Air Conditioning(R-410A)",
+        konsumsiKertas: "Konsumsi Kertas",
+        transportB: "Transportasi Barang",
+        airBersih: "Air Bersih",
+      };
 
-      alert("Data emisi berhasil disimpan!");
+      const emissionDataArray = Object.entries(filledData)
+        .map(([key, value]) => {
+          if (sourceNameMapping[key]) {
+            return {
+              source_name: sourceNameMapping[key],
+              value: parseFloat(value) || 0,
+            };
+          }
+          return null;
+        })
+        .filter((item) => item !== null);
+
+      if (emissionDataArray.length === 0) {
+        setModalMessage(
+          "Data yang diisi tidak valid atau tidak ada di mapping."
+        );
+        setShowModal(true);
+        setIsLoading(false);
+        return;
+      }
+
+      const requestBody = {
+        emission_data: emissionDataArray,
+      };
+
+      const inputApiUrl = `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/emission-inputs/with-details`;
+
+      console.log("Mengirim data input ke:", inputApiUrl);
+      console.log("Body Input:", JSON.stringify(requestBody, null, 2));
+
+      const resInput = await fetch(inputApiUrl, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(requestBody),
+      });
+
+      console.log("Status API Input:", resInput.status);
+      const responseDataInput = await resInput.json();
+      console.log("Respon Data Input:", responseDataInput);
+
+      if (!resInput.ok) {
+        throw new Error(
+          responseDataInput.message || "Gagal menyimpan data input emisi."
+        );
+      }
+
+      const input_id = responseDataInput.data?.input_id;
+
+      if (!input_id) {
+        console.error(
+          "Respon API Input tidak mengandung input_id:",
+          responseDataInput
+        );
+        throw new Error(
+          "Gagal mendapatkan input_id dari server setelah menyimpan."
+        );
+      }
+
+      const resultApiUrl = `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/emission-results`;
+      console.log(
+        "Meminta kalkulasi hasil ke:",
+        resultApiUrl,
+        "dengan input_id:",
+        input_id
+      );
+
+      const resResult = await fetch(resultApiUrl, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          input_id: input_id,
+        }),
+      });
+
+      console.log("Status API Result:", resResult.status);
+      const responseDataResult = await resResult.json();
+      console.log("Respon Data Result:", responseDataResult);
+
+      if (!resResult.ok) {
+        throw new Error(
+          responseDataResult.message || "Gagal memproses hasil kalkulasi emisi."
+        );
+      }
+
+      alert("Data emisi berhasil disimpan dan diproses!");
       router.push("/emisi");
     } catch (err) {
+      console.error("Submit error:", err);
       setModalMessage(err.message || "Terjadi kesalahan saat menyimpan.");
       setShowModal(true);
     } finally {
@@ -127,13 +225,12 @@ export default function InputEmisiPage() {
         Input Data Emisi
       </h1>
       <form onSubmit={handleSubmit}>
-        {/* === Kategori Energi === */}
         <div className="mb-10">
           <h2 className="text-lg md:text-xl font-semibold text-gray-800 mb-4">
             Energi
           </h2>
           <InputField
-            label="Listrik"
+            label="Listrik PLN"
             name="listrik"
             unit="kWh"
             value={formData.listrik}
@@ -149,7 +246,7 @@ export default function InputEmisiPage() {
             number="02"
           />
           <InputField
-            label="Gas/LPG"
+            label="LPG"
             name="gasLpg"
             unit="Kg"
             value={formData.gasLpg}
@@ -157,12 +254,13 @@ export default function InputEmisiPage() {
             number="03"
           />
         </div>
+
         <div className="mb-10">
           <h2 className="text-lg md:text-xl font-semibold text-gray-800 mb-4">
             Transportasi & Logistik
           </h2>
           <InputField
-            label="BBM Solar/Diesel"
+            label="BBM Solar / Diesel"
             name="bbmSolar"
             unit="Liter"
             value={formData.bbmSolar}
@@ -170,7 +268,7 @@ export default function InputEmisiPage() {
             number="01"
           />
           <InputField
-            label="BBM Bensin/Gasolin"
+            label="BBM Bensin / Gasolin"
             name="bbmBensin"
             unit="Liter"
             value={formData.bbmBensin}
@@ -178,30 +276,61 @@ export default function InputEmisiPage() {
             number="02"
           />
           <InputField
-            label="BBM Kendaraan Operasional"
-            name="bbmOperasional"
+            label="Transportasi Operasional (Mobil Bensin)"
+            name="transport2"
             unit="Liter"
-            value={formData.bbmOperasional}
+            value={formData.transport2}
             onChange={handleChange}
             number="03"
           />
           <InputField
-            label="Perjalanan Dinas"
-            name="perjalananDinas"
-            unit="Km"
-            value={formData.perjalananDinas}
+            label="Transportasi Operasional (Mobil Diesel)"
+            name="transport1"
+            unit="Liter"
+            value={formData.transport1}
             onChange={handleChange}
             number="04"
           />
           <InputField
-            label="Transportasi Barang"
-            name="transportasiBarang"
+            label="Perjalanan Dinas (Pesawat Domestik)"
+            name="perjalananDinas"
             unit="Km"
-            value={formData.transportasiBarang}
+            value={formData.perjalananDinas}
             onChange={handleChange}
             number="05"
           />
+          <InputField
+            label="Transportasi Barang"
+            name="transportB"
+            unit="Km"
+            value={formData.transportB}
+            onChange={handleChange}
+            number="06"
+          />
         </div>
+
+        <div className="mb-10">
+          <h2 className="text-lg md:text-xl font-semibold text-gray-800 mb-4">
+            Pendingin / AC
+          </h2>
+          <InputField
+            label="Air Conditioning (R-134a)"
+            name="ac1"
+            unit="Kg"
+            value={formData.ac1}
+            onChange={handleChange}
+            number="01"
+          />
+          <InputField
+            label="Air Conditioning (R-410A)"
+            name="ac2"
+            unit="Kg"
+            value={formData.ac2}
+            onChange={handleChange}
+            number="02"
+          />
+        </div>
+
         <div className="mb-10">
           <h2 className="text-lg md:text-xl font-semibold text-gray-800 mb-4">
             Produksi & Material
@@ -223,6 +352,7 @@ export default function InputEmisiPage() {
             number="02"
           />
         </div>
+
         <div className="mb-10">
           <h2 className="text-lg md:text-xl font-semibold text-gray-800 mb-4">
             Limbah
@@ -244,6 +374,7 @@ export default function InputEmisiPage() {
             number="02"
           />
         </div>
+
         <div className="flex justify-end mt-8">
           <button
             type="submit"
@@ -253,11 +384,8 @@ export default function InputEmisiPage() {
             {isLoading ? "Menghitung..." : "Hitung"}
           </button>
         </div>
-        {error && (
-          <p className="mt-4 text-center text-sm text-red-600">{error}</p>
-        )}
-        "
       </form>
+
       <ErrorModal
         isOpen={showModal}
         message={modalMessage}

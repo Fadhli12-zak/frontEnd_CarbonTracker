@@ -12,11 +12,11 @@ function LoadingModal({ isOpen }) {
         </h3>
         <div className="flex justify-center mb-6">
           <Image
-            src="/popup/circle.png" 
+            src="/popup/circle.png"
             alt="Loading"
             width={100}
             height={100}
-            className="animate-spin" 
+            className="animate-spin"
           />
         </div>
         <p className="text-gray-700 text-lg">Loading</p>

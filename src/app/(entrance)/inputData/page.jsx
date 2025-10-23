@@ -7,13 +7,13 @@ import { FaChevronDown } from "react-icons/fa";
 
 export default function CompanyDataPage() {
   const [formData, setFormData] = useState({
-    namaPerusahaan: "",
-    alamat: "",
-    jenisPerusahaan: "",
-    jumlahKaryawan: "",
-    jumlahUnitProduk: "",
-    jumlahTonBarang: "",
-    pendapatanPerusahaan: "",
+    name: "",
+    address: "",
+    jenis_perusahaan: "",
+    jumlah_karyawan: "",
+    pendapatan_perbulan: "",
+    ton_barang_perbulan: "",
+    unit_produk_perbulan: "",
   });
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -31,7 +31,7 @@ export default function CompanyDataPage() {
   const handleTypeSelect = (type) => {
     setFormData((prevData) => ({
       ...prevData,
-      jenisPerusahaan: type,
+      jenis_perusahaan: type,
     }));
     setIsOpen(false);
   };
@@ -40,36 +40,52 @@ export default function CompanyDataPage() {
     e.preventDefault();
     setError("");
     setIsLoading(true);
-
     for (const key in formData) {
       if (!formData[key]) {
-        setError(`Kolom "${key.replace(/([A-Z])/g, " $1")}" wajib diisi.`);
+        setError(
+          `Kolom "${key
+            .replace(/_/g, " ")
+            .replace(/\b\w/g, (l) => l.toUpperCase())}" wajib diisi.`
+        );
         setIsLoading(false);
         return;
       }
     }
-
     try {
-      const res = await fetch("URL_API_ANDA/company-data", {
+      const token = localStorage.getItem("authToken");
+      if (!token) {
+        throw new Error(
+          "Token autentikasi tidak ditemukan. Silakan login kembali."
+        );
+      }
+      const apiUrl = `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/companies/for-user`;
+      console.log("Mengirim data ke:", apiUrl);
+      console.log("Data:", formData);
+
+      const res = await fetch(apiUrl, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
         body: JSON.stringify(formData),
       });
-
+      console.log("Status API:", res.status);
+      const responseData = await res.json();
+      console.log("Respon data:", responseData);
       if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.message || "Gagal menyimpan data.");
+        throw new Error(responseData.message || "Gagal menyimpan data.");
       }
-
       alert("Data perusahaan berhasil disimpan!");
       router.push("/");
     } catch (err) {
+      console.error("Submit error:", err);
       setError(err.message);
     } finally {
       setIsLoading(false);
     }
   };
-
+ 
   const companyTypes = [
     "Kantor, IT, Startup, Finansial",
     "Manufaktur, Produksi Barang",
@@ -95,16 +111,16 @@ export default function CompanyDataPage() {
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
           <div>
             <label
-              htmlFor="namaPerusahaan"
+              htmlFor="name"
               className="block text-sm font-medium text-gray-700"
             >
               Nama Perusahaan
             </label>
             <input
-              id="namaPerusahaan"
-              name="namaPerusahaan"
+              id="name"
+              name="name"
               type="text"
-              value={formData.namaPerusahaan}
+              value={formData.name}
               onChange={handleChange}
               placeholder="Nama Lengkap Perusahaan"
               className="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-3 border focus:border-primary-green focus:ring-primary-green"
@@ -113,16 +129,16 @@ export default function CompanyDataPage() {
 
           <div>
             <label
-              htmlFor="alamat"
+              htmlFor="address"
               className="block text-sm font-medium text-gray-700"
             >
               Alamat
             </label>
             <input
-              id="alamat"
-              name="alamat"
+              id="address"
+              name="address"
               type="text"
-              value={formData.alamat}
+              value={formData.address}
               onChange={handleChange}
               placeholder="Alamat Perusahaan"
               className="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-3 border focus:border-primary-green focus:ring-primary-green"
@@ -131,23 +147,23 @@ export default function CompanyDataPage() {
 
           <div>
             <label
-              htmlFor="jenisPerusahaan"
+              htmlFor="jenis_perusahaan"
               className="block text-sm font-medium text-gray-700"
             >
               Jenis Perusahaan
             </label>
             <button
               type="button"
-              id="jenisPerusahaan"
+              id="jenis_perusahaan"
               onClick={() => setIsOpen(!isOpen)}
               className="mt-1 flex w-full items-center justify-between rounded-md border border-gray-300 bg-white p-3 text-left shadow-sm focus:border-primary-green focus:ring-primary-green"
             >
               <span
                 className={
-                  formData.jenisPerusahaan ? "text-black" : "text-gray-500"
+                  formData.jenis_perusahaan ? "text-black" : "text-gray-500"
                 }
               >
-                {formData.jenisPerusahaan || "Pilih Jenis Perusahaan"}
+                {formData.jenis_perusahaan || "Pilih Jenis Perusahaan"}
               </span>
               <FaChevronDown
                 className={`transform transition-transform duration-200 ${
@@ -172,16 +188,16 @@ export default function CompanyDataPage() {
           </div>
           <div>
             <label
-              htmlFor="jumlahKaryawan"
+              htmlFor="jumlah_karyawan"
               className="block text-sm font-medium text-gray-700"
             >
               Jumlah Karyawan
             </label>
             <input
-              id="jumlahKaryawan"
-              name="jumlahKaryawan"
+              id="jumlah_karyawan"
+              name="jumlah_karyawan"
               type="text"
-              value={formData.jumlahKaryawan}
+              value={formData.jumlah_karyawan}
               onChange={handleChange}
               placeholder="Jumlah Karyawan Perusahaan"
               className="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-3 border focus:border-primary-green focus:ring-primary-green"
@@ -189,16 +205,16 @@ export default function CompanyDataPage() {
           </div>
           <div>
             <label
-              htmlFor="jumlahUnitProduk"
+              htmlFor="pendapatan_perbulan"
               className="block text-sm font-medium text-gray-700"
             >
               Jumlah Unit Produk
             </label>
             <input
-              id="jumlahUnitProduk"
-              name="jumlahUnitProduk"
+              id="pendapatan_perbulan"
+              name="pendapatan_perbulan"
               type="text"
-              value={formData.jumlahUnitProduk}
+              value={formData.pendapatan_perbulan}
               onChange={handleChange}
               placeholder="Jumlah Unit/Bulan"
               className="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-3 border focus:border-primary-green focus:ring-primary-green"
@@ -206,16 +222,16 @@ export default function CompanyDataPage() {
           </div>
           <div>
             <label
-              htmlFor="jumlahTonBarang"
+              htmlFor="ton_barang_perbulan"
               className="block text-sm font-medium text-gray-700"
             >
               Jumlah Ton Barang
             </label>
             <input
-              id="jumlahTonBarang"
-              name="jumlahTonBarang"
+              id="ton_barang_perbulan"
+              name="ton_barang_perbulan"
               type="text"
-              value={formData.jumlahTonBarang}
+              value={formData.ton_barang_perbulan}
               onChange={handleChange}
               placeholder="Jumlah Ton Barang/Bulan"
               className="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-3 border focus:border-primary-green focus:ring-primary-green"
@@ -224,16 +240,16 @@ export default function CompanyDataPage() {
 
           <div>
             <label
-              htmlFor="pendapatanPerusahaan"
+              htmlFor="unit_produk_perbulan"
               className="block text-sm font-medium text-gray-700"
             >
               Pendapatan Perusahaan
             </label>
             <input
-              id="pendapatanPerusahaan"
-              name="pendapatanPerusahaan"
+              id="unit_produk_perbulan"
+              name="unit_produk_perbulan"
               type="text"
-              value={formData.pendapatanPerusahaan}
+              value={formData.unit_produk_perbulan}
               onChange={handleChange}
               placeholder="Jumlah Pendapatan/Bulan"
               className="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-3 border focus:border-primary-green focus:ring-primary-green"

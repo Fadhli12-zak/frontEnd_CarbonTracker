@@ -5,65 +5,16 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { FaEye, FaEyeSlash } from "react-icons/fa";
-
-function RegisterStatusModal({ isOpen, status, onClose }) {
-  if (!isOpen) return null;
-
-  const successInfo = {
-    title: "Pendaftaran",
-    highlight: "Berhasil!",
-    image: "/popup/success.png",
-    highlightColor: "text-green-600",
-    buttonColor: "bg-green-600",
-    message: "Silahkan Login Kembali",
-  };
-
-  const errorInfo = {
-    title: "Pendaftaran",
-    highlight: "Gagal",
-    image: "/popup/failed.png",
-    highlightColor: "text-red-600",
-    buttonColor: "bg-red-600",
-    message: "Silahkan Coba Lagi",
-  };
-
-  const info = status === "success" ? successInfo : errorInfo;
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-      <div className="bg-white p-6 rounded-2xl shadow-xl max-w-sm w-full text-center">
-        <h3 className={`text-2xl font-bold mb-4 text-black`}>
-          {info.title}{" "}
-          <span className={info.highlightColor}>{info.highlight}</span>
-        </h3>
-        <div className="my-6 flex justify-center">
-          <Image
-            src={info.image}
-            alt={status === "success" ? "Success" : "Error"}
-            width={200}
-            height={150}
-            objectFit="contain"
-          />
-        </div>
-        <p className="text-gray-700 text-lg mb-6">{info.message}</p>
-        <button
-          onClick={onClose}
-          className={`rounded-full ${info.buttonColor} px-8 py-2 text-white font-semibold hover:opacity-90`}
-        >
-          OK
-        </button>
-      </div>
-    </div>
-  );
-}
+import StatusModal from "@/components/popup/StatusModal";
 
 export default function RegisterPage() {
-  const [form, setForm] = useState({ username: "", email: "", password: "" });
+  const [form, setForm] = useState({ name: "", email: "", password: "" });
   const [error, setError] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [showRegisterModal, setShowRegisterModal] = useState(false);
+  const [showStatusModal, setShowStatusModal] = useState(false);
   const [modalStatus, setModalStatus] = useState("success");
+  const [modalMessage, setModalMessage] = useState("");
   const router = useRouter();
 
   const handleChange = (e) => {
@@ -79,9 +30,9 @@ export default function RegisterPage() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
-    setShowRegisterModal(false);
+    setShowStatusModal(false);
 
-    if (!form.username || !form.email || !form.password) {
+    if (!form.name || !form.email || !form.password) {
       setError("Semua kolom input wajib diisi");
       return;
     }
@@ -93,32 +44,42 @@ export default function RegisterPage() {
     }
 
     setIsLoading(true);
+    const apiUrl = `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/users/register`;
     try {
-      const res = await fetch("url", {
+      console.log("Mencoba mendaftar ke:", apiUrl);
+      const res = await fetch(apiUrl, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(form),
       });
-
+      console.log("Status Respons API:", res.status);
+      const responseData = await res.json();
+      console.log("Respons Data API:", responseData);
       if (!res.ok) {
-        setModalStatus("error");
-        setShowRegisterModal(true);
+        setModalMessage(
+          responseData.message ||
+            "Pendaftaran gagal. Periksa kembali data Anda."
+        );
+        setShowStatusModal(true);
         return;
       }
 
       setModalStatus("success");
-      setShowRegisterModal(true);
+      setModalMessage("");
+      setShowStatusModal(true);
     } catch (err) {
       console.error("Submit Error:", err);
-      setModalStatus("error");
-      setShowRegisterModal(true);
+      setModalMessage(
+        "Tidak dapat terhubung ke server. Silakan coba lagi nanti."
+      );
+      setShowStatusModal(true);
     } finally {
       setIsLoading(false);
     }
   };
 
   const handleCloseModal = () => {
-    setShowRegisterModal(false);
+    setShowStatusModal(false);
     if (modalStatus === "success") {
       router.push("/login");
     }
@@ -168,10 +129,10 @@ export default function RegisterPage() {
             <form onSubmit={handleSubmit}>
               <div className="mb-4 md:mb-5">
                 <input
-                  name="username"
+                  name="name"
                   type="text"
                   placeholder="Username"
-                  value={form.username}
+                  value={form.name}
                   onChange={handleChange}
                   className="h-14 w-full rounded-full border-none bg-gray-100 p-4 pl-6 text-gray-700 focus:outline-none focus:ring-2 focus:ring-green-500 md:h-16"
                 />
@@ -231,9 +192,11 @@ export default function RegisterPage() {
         </div>
       </div>
 
-      <RegisterStatusModal
-        isOpen={showRegisterModal}
+      <StatusModal
+        isOpen={showStatusModal}
         status={modalStatus}
+        context="register"
+        messageOverride={modalMessage}
         onClose={handleCloseModal}
       />
     </div>

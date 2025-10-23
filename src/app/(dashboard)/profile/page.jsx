@@ -1,7 +1,9 @@
+// src/app/(dashboard)/profile/page.jsx
 "use client";
 
 import { useState, useEffect } from "react";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 import ProfileInputField from "@/components/profile/ProfileInputField";
 import LoadingModal from "@/components/loading/LoadingModal";
 
@@ -10,56 +12,118 @@ export default function ProfilePage() {
     namaPerusahaan: "",
     alamat: "",
     jenisPerusahaan: "",
-    emailPerusahaan: "",
+    emailPerusahaan: "Memuat email...",
     jumlahKaryawan: "",
     jumlahUnitProduk: "",
     jumlahTonBarang: "",
     pendapatanPerusahaan: "",
   });
-  const [originalData, setOriginalData] = useState({});
+  const [originalData, setOriginalData] = useState(null);
+  const [companyId, setCompanyId] = useState(null);
   const [isEditing, setIsEditing] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
+  const router = useRouter();
 
   const fetchProfileData = async () => {
     setIsLoading(true);
     setError("");
     try {
-      const data = {
-        namaPerusahaan: "CT Corporaton",
-        alamat: "Jl. Teknologi Hijau No.88, Bandung, Jawa Barat",
-        jenisPerusahaan: "Manufaktur, Produksi Barang",
-        emailPerusahaan: "CTCorps@company.com",
-        jumlahKaryawan: "250",
-        jumlahUnitProduk: "12500",
-        jumlahTonBarang: "180",
-        pendapatanPerusahaan: "37500000",
-      };
+      const token = localStorage.getItem("authToken");
+      if (!token) {
+        router.push("/login");
+        return;
+      }
+      const companyApiUrl = `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/companies`;
+      const companyResponse = await fetch(companyApiUrl, {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        cache: "no-store",
+      });
 
-      const formattedData = {
-        ...data,
-        jumlahKaryawan: data.jumlahKaryawan
-          ? `${data.jumlahKaryawan} Orang`
-          : "",
-        jumlahUnitProduk: data.jumlahUnitProduk
-          ? `${data.jumlahUnitProduk} Unit Produk/Bulan`
-          : "",
-        jumlahTonBarang: data.jumlahTonBarang
-          ? `${data.jumlahTonBarang} Ton Barang/Bulan`
-          : "",
-        pendapatanPerusahaan: data.pendapatanPerusahaan
-          ? `Rp.${parseInt(data.pendapatanPerusahaan).toLocaleString(
-              "id-ID"
-            )}/Bulan`
-          : "",
-      };
+      if (!companyResponse.ok) {
+        if (companyResponse.status === 401 || companyResponse.status === 403) {
+          localStorage.removeItem("authToken");
+          router.push("/login");
+          return;
+        }
+        const errorData = await companyResponse.json();
+        throw new Error(
+          errorData.message || "Gagal mengambil data perusahaan."
+        );
+      }
 
-      setProfileData(formattedData);
-      setOriginalData(data);
+      const companyData = await companyResponse.json();
+      console.log("Profile Data API (Companies):", companyData);
+      const userApiUrl = `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/users/profile`;
+      const userResponse = await fetch(userApiUrl, {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        cache: "no-store",
+      });
+
+      if (!userResponse.ok) {
+        throw new Error("Gagal mengambil data email pengguna.");
+      }
+
+      const userData = await userResponse.json();
+      console.log("Profile Data API (User):", userData);
+
+      const userEmail = userData.data?.email || "Email tidak ditemukan";
+
+      if (
+        companyData.success &&
+        Array.isArray(companyData.data) &&
+        companyData.data.length > 0
+      ) {
+        const company = companyData.data[0];
+        setCompanyId(company.company_id);
+        setOriginalData(company);
+
+        const formattedData = {
+          namaPerusahaan: company.name || "",
+          alamat: company.address || "",
+          jenisPerusahaan: company.jenis_perusahaan || "",
+          emailPerusahaan: userEmail,
+          jumlahKaryawan: company.jumlah_karyawan
+            ? `${company.jumlah_karyawan} Orang`
+            : "",
+          jumlahUnitProduk: company.unit_produk_perbulan
+            ? `${company.unit_produk_perbulan} Unit Produk/Bulan`
+            : "",
+          jumlahTonBarang: company.ton_barang_perbulan
+            ? `${company.ton_barang_perbulan} Ton Barang/Bulan`
+            : "",
+          pendapatanPerusahaan: company.pendapatan_perbulan
+            ? `Rp.${parseFloat(company.pendapatan_perbulan).toLocaleString(
+                "id-ID"
+              )}/Bulan`
+            : "",
+        };
+        setProfileData(formattedData);
+      } else if (
+        companyData.success &&
+        Array.isArray(companyData.data) &&
+        companyData.data.length === 0
+      ) {
+        router.push("/company-data");
+        return;
+      } else {
+        throw new Error("Format data profile tidak sesuai.");
+      }
     } catch (err) {
       setError(err.message || "Terjadi kesalahan saat memuat data profile.");
       console.error("Fetch profile error:", err);
+      if (err.message.includes("Token")) {
+        setTimeout(() => router.push("/login"), 2000);
+      }
     } finally {
       setIsLoading(false);
     }
@@ -71,54 +135,85 @@ export default function ProfilePage() {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    if (e.target.type === "number") {
-      const numberRegex = /^[0-9]*$/;
+    const numberRegex = /^[0-9]*\.?[0-9]*$/;
+    const numericFields = [
+      "jumlahKaryawan",
+      "jumlahUnitProduk",
+      "jumlahTonBarang",
+      "pendapatanPerusahaan",
+    ];
+
+    if (numericFields.includes(name)) {
       if (numberRegex.test(value) || value === "") {
-        setProfileData((prevData) => ({ ...prevData, [name]: value }));
+        setProfileData((prev) => ({ ...prev, [name]: value }));
       }
     } else {
-      setProfileData((prevData) => ({ ...prevData, [name]: value }));
+      setProfileData((prev) => ({ ...prev, [name]: value }));
     }
   };
 
   const handleEditClick = () => {
+    if (!originalData) return;
     setProfileData({
-      namaPerusahaan: originalData.namaPerusahaan || "",
-      alamat: originalData.alamat || "",
-      jenisPerusahaan: originalData.jenisPerusahaan || "",
-      emailPerusahaan: originalData.emailPerusahaan || "",
-      jumlahKaryawan: originalData.jumlahKaryawan || "",
-      jumlahUnitProduk: originalData.jumlahUnitProduk || "",
-      jumlahTonBarang: originalData.jumlahTonBarang || "",
-      pendapatanPerusahaan: originalData.pendapatanPerusahaan || "",
+      namaPerusahaan: originalData.name || "",
+      alamat: originalData.address || "",
+      jenisPerusahaan: originalData.jenis_perusahaan || "",
+      emailPerusahaan: profileData.emailPerusahaan,
+      jumlahKaryawan: originalData.jumlah_karyawan || "",
+      jumlahUnitProduk: originalData.unit_produk_perbulan || "",
+      jumlahTonBarang: originalData.ton_barang_perbulan || "",
+      pendapatanPerusahaan: originalData.pendapatan_perbulan || "",
     });
     setIsEditing(true);
     setError("");
   };
-
   const handleSaveClick = async () => {
+    if (!companyId) {
+      setError("ID Perusahaan tidak ditemukan untuk update.");
+      return;
+    }
     setIsSubmitting(true);
     setError("");
     try {
       const dataToSave = {
-        namaPerusahaan: profileData.namaPerusahaan,
-        alamat: profileData.alamat,
-        jenisPerusahaan: profileData.jenisPerusahaan,
-        jumlahKaryawan: parseInt(profileData.jumlahKaryawan) || 0,
-        jumlahUnitProduk: parseInt(profileData.jumlahUnitProduk) || 0,
-        jumlahTonBarang: parseInt(profileData.jumlahTonBarang) || 0,
-        pendapatanPerusahaan: parseInt(profileData.pendapatanPerusahaan) || 0,
-        emailPerusahaan: originalData.emailPerusahaan,
+        name: profileData.namaPerusahaan,
+        address: profileData.alamat,
+        jenis_perusahaan: profileData.jenisPerusahaan,
+        jumlah_karyawan: parseInt(profileData.jumlahKaryawan) || null,
+        unit_produk_perbulan: parseInt(profileData.jumlahUnitProduk) || null,
+        ton_barang_perbulan: parseFloat(profileData.jumlahTonBarang) || null,
+        pendapatan_perbulan:
+          parseFloat(profileData.pendapatanPerusahaan) || null,
       };
 
-      console.log("Data yang akan dikirim:", dataToSave);
-      await new Promise((resolve) => setTimeout(resolve, 2000));
+      const token = localStorage.getItem("authToken");
+      if (!token) {
+        throw new Error("Token autentikasi tidak ditemukan.");
+      }
+
+      const apiUrl = `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/companies/${companyId}`;
+      console.log("Mengirim update ke:", apiUrl);
+      console.log("Data:", JSON.stringify(dataToSave, null, 2));
+
+      const response = await fetch(apiUrl, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(dataToSave),
+      });
+      const responseData = await response.json();
+      console.log("Update response:", responseData);
+      if (!response.ok) {
+        throw new Error(responseData.message || "Gagal menyimpan perubahan.");
+      }
 
       alert("Profile berhasil diperbarui!");
       setIsEditing(false);
       fetchProfileData();
     } catch (err) {
-      setError(err.message || "Terjadi kesalahan saat menyimpan profile.");
+      setError(err.message || "Terjadi kesalahan saat menyimpan.");
       console.error("Save profile error:", err);
     } finally {
       setIsSubmitting(false);
@@ -127,21 +222,21 @@ export default function ProfilePage() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-white">
+      <div className="flex items-center justify-center flex-grow bg-white min-h-screen">
         <LoadingModal isOpen={true} />
       </div>
     );
   }
 
   return (
-    <div className="w-full bg-white text-gray-900 flex-grow pt-0 p-0 relative ">
-      <div className="h-24 bg-tertiary-green px-4 md:px-8" />
-      <div className="p-4 md:p-8">
-        <div className="flex flex-col md:flex-row items-center justify-between mb-8 md:mb-12 mt-2 pt-12 md:-mt-8 px-4 md:px-0 ">
-          <div className="flex flex-col md:flex-row items-center text-center md:text-left space-y-3 md:space-y-0 md:space-x-4 mb-4 md:mb-0">
-            <div className="relative w-20 h-20 rounded-full overflow-hidden border-2 border-primary-green bg-white flex-shrink-0">
+    <div className="w-full bg-white text-gray-900 min-h-full flex flex-col">
+      <div className="h-24 bg-tertiary-green px-4 md:px-8 flex-shrink-0" />
+      <div className="p-4 md:p-8 flex-grow">
+        <div className="flex flex-col md:flex-row items-center justify-between mb-8 md:mb-12 -mt-16 md:-mt-16 px-4 md:px-0">
+          <div className=" mt-20 flex flex-col md:flex-row items-center text-center md:text-left space-y-3 md:space-y-0 md:space-x-4 mb-4 md:mb-0">
+            <div className="  relative w-20 h-20 rounded-full overflow-hidden border-2 border-primary-green bg-white flex-shrink-0">
               <Image
-                src="/company-logo.png"
+                src="/companyPicture.png"
                 alt="Company Logo"
                 layout="fill"
                 objectFit="cover"
@@ -177,6 +272,7 @@ export default function ProfilePage() {
               value={profileData.namaPerusahaan}
               onChange={handleChange}
               readOnly={!isEditing}
+              type="text"
             />
             <ProfileInputField
               label="Alamat"
@@ -184,6 +280,7 @@ export default function ProfilePage() {
               value={profileData.alamat}
               onChange={handleChange}
               readOnly={!isEditing}
+              type="text"
             />
             <ProfileInputField
               label="Jenis Perusahaan"
@@ -191,6 +288,7 @@ export default function ProfilePage() {
               value={profileData.jenisPerusahaan}
               onChange={handleChange}
               readOnly={!isEditing}
+              type="text"
             />
             <div className="mb-6 flex items-center space-x-3 mt-6 md:mt-8">
               <div className="w-8 h-8 flex items-center justify-center bg-gray-100 rounded-full flex-shrink-0">
@@ -219,7 +317,8 @@ export default function ProfilePage() {
               value={profileData.jumlahKaryawan}
               onChange={handleChange}
               readOnly={!isEditing}
-              type={isEditing ? "number" : "text"}
+              type="text"
+              inputMode={isEditing ? "numeric" : undefined}
               placeholder={isEditing ? "Masukkan Angka" : ""}
             />
             <ProfileInputField
@@ -228,7 +327,8 @@ export default function ProfilePage() {
               value={profileData.jumlahUnitProduk}
               onChange={handleChange}
               readOnly={!isEditing}
-              type={isEditing ? "number" : "text"}
+              type="text"
+              inputMode={isEditing ? "numeric" : undefined}
               placeholder={isEditing ? "Masukkan Angka" : ""}
             />
             <ProfileInputField
@@ -237,7 +337,8 @@ export default function ProfilePage() {
               value={profileData.jumlahTonBarang}
               onChange={handleChange}
               readOnly={!isEditing}
-              type={isEditing ? "number" : "text"}
+              type="text"
+              inputMode={isEditing ? "numeric" : undefined}
               placeholder={isEditing ? "Masukkan Angka" : ""}
             />
             <ProfileInputField
@@ -246,16 +347,17 @@ export default function ProfilePage() {
               value={profileData.pendapatanPerusahaan}
               onChange={handleChange}
               readOnly={!isEditing}
-              type={isEditing ? "number" : "text"}
+              type="text"
+              inputMode={isEditing ? "numeric" : undefined}
               placeholder={isEditing ? "Masukkan Angka (tanpa Rp./titik)" : ""}
             />
           </div>
         </div>
+        <div className="h-56 bg-white" />
         {error && (
           <p className="mt-8 text-center text-red-600 text-sm">{error}</p>
         )}
       </div>
-      <div className="h-60 bg-white" />
       <LoadingModal isOpen={isSubmitting} />
     </div>
   );

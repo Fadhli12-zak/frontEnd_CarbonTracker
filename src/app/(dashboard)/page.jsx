@@ -19,7 +19,7 @@ export default function HomePage() {
             Kendalikan Karbon dan Ubah Masa Depanmu Sekarang
           </p>
           <Link
-            href="/hitung"
+            href="/input-emisi"
             className="w-fit rounded-full bg-white px-6 py-2 md:px-8 md:py-3 text-sm md:text-base font-bold text-primary-green transition hover:bg-gray-200"
           >
             Hitung Emisi Karbon
@@ -139,7 +139,7 @@ export default function HomePage() {
           Mulai Kurangi Emisi dan Wujudkan Bisnis Zero Carbon
         </h2>
         <Link
-          href="/hitung"
+          href="/input-emisi"
           className="w-fit rounded-full bg-white px-6 py-2 md:px-8 md:py-3 text-sm md:text-base font-bold text-primary-green transition hover:bg-gray-200"
         >
           Hitung Emisi Karbon

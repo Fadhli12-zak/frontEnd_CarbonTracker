@@ -3,7 +3,9 @@
 import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { usePathname } from "next/navigation";
+import LogoutConfirmationModal from "./popup/LogoutModal";
+import { usePathname, useRouter } from "next/navigation";
+import LoadingModal from "./loading/LoadingModal";
 
 function SidebarDrawer({ isOpen, onClose }) {
   const pathname = usePathname();
@@ -74,13 +76,23 @@ function SidebarDrawer({ isOpen, onClose }) {
 }
 
 export default function Sidebar() {
+  const [isLogOut, setIsLogOut] = useState(false);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const pathname = usePathname();
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
+  const router = useRouter();
 
   const toggleDrawer = () => {
     setIsDrawerOpen(!isDrawerOpen);
   };
-
+  const handleLogout = () => {
+    localStorage.removeItem("authToken");
+    setShowLogoutModal(false);
+    setIsLogOut(true);
+    setTimeout(() => {
+      router.push("/login");
+    }, 500);
+  };
   const getIconLinkClass = (path, isToogleIcon = false) => {
     const baseClass =
       "hover:bg-green-600/20 rounded-lg p-1 transition-colors duration-200";
@@ -186,18 +198,28 @@ export default function Sidebar() {
               alt="Settings"
             />
           </Link>
-          <Link href="/logout" className="hover:bg-green-600/20 rounded-lg p-1">
+          <button
+            onClick={() => setShowLogoutModal(true)}
+            className="hover:bg-green-600/20 rounded-lg p-1"
+            aria-label="Logout"
+          >
             <Image
               src="/icons/Logout.png"
               width={21}
               height={21}
               alt="Logout"
             />
-          </Link>
+          </button>
         </div>
       </aside>
 
       <SidebarDrawer isOpen={isDrawerOpen} onClose={toggleDrawer} />
+      <LogoutConfirmationModal
+        isOpen={showLogoutModal}
+        onConfirm={handleLogout}
+        onCancel={() => setShowLogoutModal(false)}
+      />
+      <LoadingModal isOpen={isLogOut} />
     </>
   );
 }
