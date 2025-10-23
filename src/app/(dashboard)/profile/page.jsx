@@ -348,7 +348,7 @@ export default function ProfilePage() {
             />
           </div>
         </div>
-        <div className="h-56 bg-white" />
+        <div className="h-80 bg-white" />
         {error && (
           <p className="mt-8 text-center text-red-600 text-sm">{error}</p>
         )}
