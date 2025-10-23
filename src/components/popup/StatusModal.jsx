@@ -39,6 +39,24 @@ const statusConfig = {
       message: "Username atau password salah. Silahkan Coba Lagi.",
     },
   },
+  saveData: {
+    success: {
+      title: "Data",
+      highlight: "Berhasil Disimpan",
+      image: "/popup/success.png",
+      highlightColor: "text-green-600",
+      buttonColor: "bg-green-600",
+      message: "SElamat Datang",
+    },
+    error: {
+      title: "Data",
+      highlight: "Gagal Disimpan",
+      image: "/popup/failed.png",
+      highlightColor: "text-red-600",
+      buttonColor: "bg-red-600",
+      message: "Silahkan Coba Lagi",
+    },
+  },
 };
 
 function StatusModal({

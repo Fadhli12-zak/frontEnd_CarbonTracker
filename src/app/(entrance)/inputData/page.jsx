@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { FaChevronDown } from "react-icons/fa";
+import StatusModal from "@/components/popup/StatusModal";
 
 export default function CompanyDataPage() {
   const [formData, setFormData] = useState({
@@ -19,6 +20,9 @@ export default function CompanyDataPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
   const router = useRouter();
+  const [showStatusModal, setShowStatusModal] = useState(false);
+  const [modalStatus, setModalStatus] = useState("success");
+  const [modalMessage, setModalMessage] = useState("");
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -55,7 +59,7 @@ export default function CompanyDataPage() {
       const token = localStorage.getItem("authToken");
       if (!token) {
         throw new Error(
-          "Token autentikasi tidak ditemukan. Silakan login kembali."
+          "Token autentikasi tidak ditemukan. Silahkan login kembali."
         );
       }
       const apiUrl = `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/companies/for-user`;
@@ -74,9 +78,15 @@ export default function CompanyDataPage() {
       const responseData = await res.json();
       console.log("Respon data:", responseData);
       if (!res.ok) {
-        throw new Error(responseData.message || "Gagal menyimpan data.");
+        setModalStatus("error");
+        setShowStatusModal(true);
+        setIsLoading(false);
+        return;
       }
-      alert("Data perusahaan berhasil disimpan!");
+      setModalStatus("success");
+      setModalMessage("data berhasil tersimpan");
+      setShowStatusModal(true);
+
       router.push("/");
     } catch (err) {
       console.error("Submit error:", err);
@@ -85,7 +95,14 @@ export default function CompanyDataPage() {
       setIsLoading(false);
     }
   };
- 
+  const handleCloseModal = () => {
+    setShowStatusModal(false);
+    if (modalStatus === "success") {
+      const redirectTarget = localStorage.getItem("/");
+      console.log("Redirecting to:", redirectTarget);
+      router.push(redirectTarget);
+    }
+  };
   const companyTypes = [
     "Kantor, IT, Startup, Finansial",
     "Manufaktur, Produksi Barang",
@@ -268,6 +285,13 @@ export default function CompanyDataPage() {
           {error && <p className="text-center text-sm text-red-600">{error}</p>}
         </form>
       </div>
+      <StatusModal
+        isOpen={showStatusModal}
+        status={modalStatus}
+        context="saveData"
+        messageOverride={modalMessage}
+        onClose={handleCloseModal}
+      />
     </div>
   );
 }

@@ -74,8 +74,6 @@ export default function ProfilePage() {
       }
 
       const userData = await userResponse.json();
-      console.log("Profile Data API (User):", userData);
-
       const userEmail = userData.data?.email || "Email tidak ditemukan";
 
       if (
@@ -192,9 +190,6 @@ export default function ProfilePage() {
       }
 
       const apiUrl = `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/companies/${companyId}`;
-      console.log("Mengirim update ke:", apiUrl);
-      console.log("Data:", JSON.stringify(dataToSave, null, 2));
-
       const response = await fetch(apiUrl, {
         method: "PUT",
         headers: {

@@ -22,9 +22,7 @@ export default function EmissionPage() {
       const token = localStorage.getItem("authToken");
 
       if (!token) {
-        setError(
-          "token tidak ditemukan, anda akan diarahkan ke login"
-        );
+        setError("token tidak ditemukan, anda akan diarahkan ke login");
         const timer = setTimeout(() => {
           router.push("/login");
         }, 2000);
@@ -33,7 +31,6 @@ export default function EmissionPage() {
       }
 
       const apiUrl = `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/emission-results/latest`;
-      console.log(`Fetching emission data from: ${apiUrl}`);
 
       try {
         const res = await fetch(apiUrl, {
@@ -44,14 +41,7 @@ export default function EmissionPage() {
           },
           cache: "no-store",
         });
-
-        console.log("API Status:", res.status);
         const responseData = await res.json();
-        console.log(
-          "API Data Received:",
-          JSON.stringify(responseData, null, 2)
-        );
-
         if (!res.ok) {
           let errorMsg = "Gagal mengambil data emisi.";
           try {
@@ -66,27 +56,27 @@ export default function EmissionPage() {
         }
 
         const colorMap = {
-          "Listrik PLN": "#00FFB9",
-          Genset: "#00DDAA",
-          LPG: "#00BB99",
-          "BBM Solar / Diesel": "#FFAE00",
-          "BBM Bensin / Gasolin": "#FFC300",
-          "Transportasi Operasional(Mobil Bensin)": "#FF0088",
-          "Transportasi Operasional(Mobil Diesel)": "#D40078",
-          "Perjalanan Dinas(Pesawat Domestik)": "#AA0068",
-          "Transportasi Barang": "#800058",
-          "Air Conditioning(R-134a)": "#A1FF00",
-          "Air Conditioning(R-410A)": "#B1FF3A",
-          "Konsumsi Kertas": "#FFAE00",
-          "Air Bersih": "#FFC300",
-          "Limbah Padat": "#A1FF00",
-          "Limbah Cair": "#B1FF3A",
-          Energi: "#00FFB9",
-          Transportasi: "#FF0088",
-          Produksi: "#FFAE00",
-          Limbah: "#A1FF00",
-          Pendingin: "#A1FF00",
-          "Tidak ada Emisi": "#BDC3C7",
+          "Listrik PLN": "#00BCD4",
+          Genset: "#8BC34A",
+          LPG: "#FF5722",
+          "BBM Solar / Diesel": "#9C27B0",
+          "BBM Bensin / Gasolin": "#3F51B5",
+          "Transportasi Operasional(Mobil Bensin)": "#E91E63",
+          "Transportasi Operasional(Mobil Diesel)": "#F44336",
+          "Perjalanan Dinas(Pesawat Domestik)": "#4CAF50",
+          "Transportasi Barang": "#FF9800",
+          "Air Conditioning(R-134a)": "#009688",
+          "Air Conditioning(R-410A)": "#CDDC39",
+          "Konsumsi Kertas": "#795548",
+          "Air Bersih": "#2196F3",
+          "Limbah Padat": "#673AB7",
+          "Limbah Cair": "#FFEB3B",
+          Energi: "#607D8B",
+          Transportasi: "#C2185B",
+          Produksi: "#FFA726",
+          Limbah: "#2E7D32",
+          Pendingin: "#7B1FA2",
+          "Tidak ada Emisi": "#9E9E9E",
         };
 
         if (
@@ -97,23 +87,6 @@ export default function EmissionPage() {
         ) {
           const apiData = responseData.data;
           const totalEmissionValue = parseFloat(apiData.total_emission) || 0;
-
-          const energiData = Array.isArray(apiData.energi)
-            ? apiData.energi
-            : [];
-          const transportasiData = Array.isArray(apiData.transportasi)
-            ? apiData.transportasi
-            : [];
-          const produksiData = Array.isArray(apiData.produksi)
-            ? apiData.produksi
-            : [];
-          const limbahData = Array.isArray(apiData.limbah)
-            ? apiData.limbah
-            : [];
-          const pendinginData = Array.isArray(apiData.pendingin)
-            ? apiData.pendingin
-            : [];
-
           const emissionDetails = apiData.emissioninput?.emissioninputdetail;
           const formattedTotalEmissions = Array.isArray(emissionDetails)
             ? emissionDetails.map((detail) => {
@@ -186,7 +159,6 @@ export default function EmissionPage() {
           responseData.success &&
           (responseData.data === null || Array.isArray(responseData.data))
         ) {
-          console.log("API sukses tapi data null/kosong.");
           setData({
             totalEmissions: [],
             categoricalEmissions: [],

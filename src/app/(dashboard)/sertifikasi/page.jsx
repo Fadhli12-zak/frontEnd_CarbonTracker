@@ -5,7 +5,59 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import MonthlyEmissionChart from "@/components/charts/MonthlyEmissionChart";
 import LoadingModal from "@/components/loading/LoadingModal";
-import DownloadStatusModal from "@/components/popup/DownloadModal";
+
+function DownloadStatusModal({ isOpen, status, onClose, messageOverride }) {
+  if (!isOpen) return null;
+
+  const successInfo = {
+    title: "Sertifikat Berhasil",
+    highlight: "Diunduh!",
+    image: "/popup/success.png",
+    highlightColor: "text-green-600",
+    buttonColor: "bg-green-600",
+    message: "File tersimpan di perangkat Anda.",
+  };
+
+  const errorInfo = {
+    title: "Sertifikat Belum Bisa",
+    highlight: "Diunduh!",
+    image: "/popup/failed.png",
+    highlightColor: "text-red-600",
+    buttonColor: "bg-red-600",
+    message: "Silakan coba lagi nanti atau hubungi support.",
+  };
+
+  const info = status === "success" ? successInfo : errorInfo;
+  const displayMessage = messageOverride || info.message;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+      <div className="bg-white p-6 rounded-2xl shadow-xl max-w-sm w-full text-center">
+        <h3 className={`text-2xl font-bold mb-4 text-black`}>
+          {info.title}{" "}
+          <span className={info.highlightColor}>{info.highlight}</span>
+        </h3>
+        <div className="my-6 flex justify-center">
+          <Image
+            src={info.image}
+            alt={status === "success" ? "Success" : "Error"}
+            width={200}
+            height={150}
+            objectFit="contain"
+            priority
+          />
+        </div>
+        <p className="text-gray-700 text-base mb-6">{displayMessage}</p>
+        <button
+          onClick={onClose}
+          className={`rounded-full ${info.buttonColor} px-8 py-2 text-white font-semibold hover:opacity-90`}
+        >
+          OK
+        </button>
+      </div>
+    </div>
+  );
+}
 
 const legendData = [
   { name: "Tinggi (46-100%)", color: "#FF1493" },
@@ -14,7 +66,7 @@ const legendData = [
 ];
 
 export default function SertifikasiPage() {
-  const [historyData, setHistoryData] = useState({});
+  const [historyData, setHistoryData] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -39,7 +91,7 @@ export default function SertifikasiPage() {
         return;
       }
 
-      const apiUrl = `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/emission-results/history`; //API MASIH BELUM tersedia
+      const apiUrl = `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/emission-results/history`;
       console.log(`Fetching history data from: ${apiUrl}`);
 
       try {
@@ -51,13 +103,7 @@ export default function SertifikasiPage() {
           },
           cache: "no-store",
         });
-
-        console.log("History API Status:", res.status);
         const responseData = await res.json();
-        console.log(
-          "History API Data Received:",
-          JSON.stringify(responseData, null, 2)
-        );
 
         if (!res.ok) {
           let errorMsg =
@@ -70,14 +116,18 @@ export default function SertifikasiPage() {
           throw new Error(errorMsg);
         }
 
-        if (responseData.success && typeof responseData.data === "object") {
-          setHistoryData(responseData.data || {});
+        if (
+          responseData.success &&
+          responseData.data &&
+          Array.isArray(responseData.data.history)
+        ) {
+          setHistoryData(responseData.data.history);
         } else {
           console.warn(
             "History API response structure might be incorrect:",
             responseData
           );
-          setHistoryData({});
+          setHistoryData([]);
         }
       } catch (err) {
         console.error("Error fetching history data:", err);
@@ -100,10 +150,12 @@ export default function SertifikasiPage() {
         setModalStatus("error");
         setModalMessage("Sesi tidak valid. Silakan login kembali.");
         setShowDownloadModal(true);
+        setIsDownloading(false);
         return;
       }
 
-      const apiUrl = `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/certificates`; //API MASIH BELUM tersedia
+      const apiUrl = `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/certificates/download`;
+      console.log("Mencoba download dari:", apiUrl);
 
       const response = await fetch(apiUrl, {
         method: "GET",
@@ -181,7 +233,7 @@ export default function SertifikasiPage() {
     );
   }
 
-  const noHistoryData = !historyData || Object.keys(historyData).length === 0;
+  const noHistoryData = !historyData || historyData.length === 0;
 
   return (
     <div className="w-full min-h-full">
@@ -191,27 +243,21 @@ export default function SertifikasiPage() {
         </h1>
         <h2 className="text-base md:text-lg font-semibold mb-4">Total Emisi</h2>
         <div className="mb-4 h-64 w-full">
-          {noHistoryData ? (
-            <div className="h-full flex items-center justify-center text-gray-300 text-sm">
-              Data histori emisi belum tersedia.
-            </div>
-          ) : (
-            <MonthlyEmissionChart monthlyData={historyData} />
-          )}
+          <MonthlyEmissionChart
+            monthlyData={noHistoryData ? [] : historyData}
+          />
         </div>
-        {!noHistoryData && (
-          <div className="flex justify-center flex-wrap gap-x-6 gap-y-2">
-            {legendData.map((item) => (
-              <div key={item.name} className="flex items-center gap-2">
-                <span
-                  className="h-3 w-3 sm:h-4 sm:w-4 rounded-sm flex-shrink-0"
-                  style={{ backgroundColor: item.color }}
-                ></span>
-                <span className="text-xs sm:text-sm">{item.name}</span>
-              </div>
-            ))}
-          </div>
-        )}
+        <div className="flex justify-center flex-wrap gap-x-6 gap-y-2">
+          {legendData.map((item) => (
+            <div key={item.name} className="flex items-center gap-2">
+              <span
+                className="h-3 w-3 sm:h-4 sm:w-4 rounded-sm flex-shrink-0"
+                style={{ backgroundColor: item.color }}
+              ></span>
+              <span className="text-xs sm:text-sm">{item.name}</span>
+            </div>
+          ))}
+        </div>
       </section>
 
       <section

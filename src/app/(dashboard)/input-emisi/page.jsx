@@ -3,10 +3,8 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import ErrorModal from "@/components/popup/ErrorModal";
-import Image from "next/image";
 
 const InputField = ({
-  category,
   number,
   label,
   name,
@@ -144,10 +142,6 @@ export default function InputEmisiPage() {
       };
 
       const inputApiUrl = `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/emission-inputs/with-details`;
-
-      console.log("Mengirim data input ke:", inputApiUrl);
-      console.log("Body Input:", JSON.stringify(requestBody, null, 2));
-
       const resInput = await fetch(inputApiUrl, {
         method: "POST",
         headers: {

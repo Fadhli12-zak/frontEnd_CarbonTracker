@@ -50,7 +50,6 @@ export default function LoginPage() {
 
       if (!loginRes.ok) {
         setModalStatus("error");
-        setModalMessage(loginData.message || "Login gagal.");
         setShowStatusModal(true);
         setIsLoading(false);
         return;
@@ -59,10 +58,9 @@ export default function LoginPage() {
       if (loginData.data && loginData.data.token) {
         const token = loginData.data.token;
         localStorage.setItem("authToken", token);
-        console.log("Token disimpan:", token);
-
         const checkCompanyApiUrl = `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/companies`;
-
+        document.cookie = `authToken=${token}; path=/; max-age=86400; SameSite=None; Secure`;
+        console.log("Token berhasil disimpan di localStorage dan Cookie");
         try {
           const companyRes = await fetch(checkCompanyApiUrl, {
             method: "GET",

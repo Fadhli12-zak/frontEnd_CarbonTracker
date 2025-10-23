@@ -1,4 +1,3 @@
-// src/components/common/LogoutConfirmationModal.jsx (or define within Sidebar.jsx)
 "use client";
 
 import React from "react";

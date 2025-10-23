@@ -89,6 +89,7 @@ export default function Sidebar() {
     localStorage.removeItem("authToken");
     setShowLogoutModal(false);
     setIsLogOut(true);
+    document.cookie = "authToken=; Max-Age=0; path=/;";
     setTimeout(() => {
       router.push("/login");
     }, 500);

@@ -8,114 +8,126 @@ import {
   BarElement,
   Tooltip,
   Legend,
+  Title,
 } from "chart.js";
 
-ChartJS.register(CategoryScale, LinearScale, BarElement, Tooltip, Legend);
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  Tooltip,
+  Legend,
+  Title
+);
 
-const MONTHS = [
+const ALL_MONTHS = [
   "Jan",
   "Feb",
   "Mar",
   "Apr",
-  "May",
+  "Mei", 
   "Jun",
   "Jul",
-  "Aug",
+  "Agu",
   "Sep",
-  "Oct",
+  "Okt",
   "Nov",
-  "Dec",
+  "Des",
 ];
 
-export default function MonthlyEmissionChart({ monthlyData = {} }) {
+const getEmissionStyle = (level) => {
+  if (level === "Buruk") {
+    return { color: "#FF1493" }; 
+  }
+  if (level === "Sedang") {
+    return { color: "#FFA500" };
+  }
+  if (level === "Baik") {
+    return { color: "#ADFF2F" }; 
+  }
+  return { color: "#BDC3C7" }; 
+};
 
-  const lowData = MONTHS.map((month) => monthlyData[month]?.rendah || 0);
-  const mediumData = MONTHS.map((month) => monthlyData[month]?.sedang || 0);
-  const highData = MONTHS.map((month) => monthlyData[month]?.tinggi || 0);
+export default function MonthlyEmissionChart({ monthlyData = [] }) {
+  const monthlyTotals = {};
+  const monthlyColors = {};
+  ALL_MONTHS.forEach((month) => {
+    monthlyTotals[month] = 0;
+    monthlyColors[month] = "transparent";
+  });
+
+  if (Array.isArray(monthlyData)) {
+    monthlyData.forEach((item) => {
+      if (item && item.month) {
+        const monthName = item.month.split(" ")[0];
+        if (monthlyTotals.hasOwnProperty(monthName)) {
+          monthlyTotals[monthName] = item.total_emission;
+          monthlyColors[monthName] = getEmissionStyle(item.level).color;
+        }
+      }
+    });
+  }
 
   const data = {
-    labels: MONTHS,
+    labels: ALL_MONTHS,
     datasets: [
       {
-        label: "Rendah (0-20%)",
-        data: lowData,
-        backgroundColor: "#ADFF2F", 
+        label: "Total Emisi (kg CO2)",
+        data: ALL_MONTHS.map((month) => monthlyTotals[month]),
+        backgroundColor: ALL_MONTHS.map((month) => monthlyColors[month]),
         borderWidth: 0,
-        stack: "Stack 0", 
-      },
-      {
-        label: "Sedang (21-45%)",
-        data: mediumData,
-        backgroundColor: "#FFA500", 
-        borderWidth: 0,
-        stack: "Stack 0",
-      },
-      {
-        label: "Tinggi (46-100%)",
-        data: highData,
-        backgroundColor: "#FF1493", 
-        borderWidth: 0,
-        stack: "Stack 0",
       },
     ],
   };
 
   const options = {
     responsive: true,
-    maintainAspectRatio: false, 
+    maintainAspectRatio: false,
     plugins: {
-      legend: {
-        display: false, 
-      },
+      legend: { display: false },
       tooltip: {
         callbacks: {
           label: function (context) {
             if (context.raw > 0) {
-              return `${context.dataset.label}: ${context.raw}%`;
+              return `Total Emisi: ${context.raw.toFixed(2)} kg CO2`;
             }
+            return null;
           },
         },
       },
     },
     scales: {
       x: {
-        stacked: true,
-        grid: {
-          display: false, 
-        },
-        ticks: {
+        grid: { display: false },
+        ticks: { color: "#FFFFFF" },
+        border: { display: true, color: "#FFFFFF" },
+        title: {
+          display: true,
+          text: "Bulan",
           color: "#FFFFFF",
-        },
-        border: {
-          color: "#FFFFFF",
+          align: "end",
+          padding: { top: 10 },
         },
       },
       y: {
-        stacked: true, 
         beginAtZero: true,
-        max: 100,
-        grid: {
-          display: false,
-        },
-        ticks: {
-          display: false,
-        },
-        border: {
-          color: "#FFFFFF",
-        },
+        max: monthlyData && monthlyData.length === 0 ? 1 : undefined,
+        grid: { display: false },
+        ticks: { display: false },
+        border: { display: true, color: "#FFFFFF" },
       },
     },
     datasets: {
       bar: {
-        barPercentage: 0.6, 
-        categoryPercentage: 0.7, 
+        barPercentage: 0.6,
+        categoryPercentage: 0.7,
       },
     },
   };
 
   return (
-    <div className="h-64 w-full">
-      <Bar data={data} options={options} />
+    <div className="h-full w-full">
+            <Bar data={data} options={options} />    {" "}
     </div>
   );
 }
