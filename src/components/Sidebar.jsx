@@ -205,7 +205,7 @@ export default function Sidebar() {
             aria-label="Logout"
           >
             <Image
-              src="/icons/Logout.png"
+              src="/icons/logout.png"
               width={21}
               height={21}
               alt="Logout"
